@@ -16,8 +16,10 @@
 
 package org.lightcouch;
 
-import static org.lightcouch.CouchDbUtil.*;
-import static org.lightcouch.URIBuilder.builder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import org.lightcouch.ReplicatorDocument.UserCtx;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -26,11 +28,8 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.lightcouch.ReplicatorDocument.UserCtx;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
+import static org.lightcouch.CouchDbUtil.*;
+import static org.lightcouch.URIBuilder.builder;
 
 /**
  * <p>This class allows construction and sending of replication requests targeting a replicator database.
@@ -206,11 +205,13 @@ public class Replicator {
 	public List<ReplicatorDocument> findAll() {
 		InputStream instream = null;
 		try {  
-			URI uri = builder(dbc.getBaseUri()).path(replicatorDB).path("/").path("_all_docs").query("include_docs", "true").build();
+			URI uri = dbc.getAllDocsUri(builder(dbc.getBaseUri()).path(replicatorDB).build(), true);
 			Reader reader = new InputStreamReader(instream = dbc.get(uri));
 			JsonArray jsonArray = new JsonParser().parse(reader)
 					.getAsJsonObject().getAsJsonArray("rows");
+
 			List<ReplicatorDocument> list = new ArrayList<ReplicatorDocument>();
+
 			for (JsonElement jsonElem : jsonArray) {
 				JsonElement elem = jsonElem.getAsJsonObject().get("doc");
 				if(!getElement(elem.getAsJsonObject(), "_id").startsWith("_design")) { // skip design docs
@@ -218,13 +219,15 @@ public class Replicator {
 					list.add(rd);
 				}
 			}
+
 			return list;
 		} finally {
 			close(instream);
 		}
 	}
-	
-	/**
+
+
+    /**
 	 * Removes a document from the replicator database.  
 	 * @return {@link Response}
 	 */

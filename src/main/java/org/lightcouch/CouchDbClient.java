@@ -16,16 +16,21 @@
 
 package org.lightcouch;
 
-import static org.lightcouch.CouchDbUtil.*;
-import static org.lightcouch.URIBuilder.builder;
-
-import java.io.InputStream;
-import java.net.URI;
-
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import org.apache.http.HttpResponse;
 
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.lightcouch.CouchDbUtil.*;
+import static org.lightcouch.URIBuilder.builder;
 
 /**
  * <p>Presents a client to a CouchDB database instance.
@@ -366,12 +371,48 @@ public final class CouchDbClient extends CouchDbClientBase {
 	public URI getDBUri() {
 		return super.getDBUri();
 	}
-	
-	/**
+
+    /**
+     * Constructs URI to the "_all_docs" URI
+     * @param dbUri
+     * @return
+     */
+    URI getAllDocsUri(final URI dbUri, Boolean includeDocs) {
+        return builder(dbUri).path("/").path("_all_docs").query("include_docs", includeDocs.toString()).build();
+    }
+
+
+
+    /**
 	 * {@inheritDoc}
 	 */
 	@Override
 	public void shutdown() {
 		super.shutdown();
 	}
+
+
+    /**
+     * List all documents in the current database
+     *
+     * @return List of document ids
+     */
+    public List<String> allDocIds() {
+        InputStream inputStream = null;
+        try {
+            Reader reader = new InputStreamReader(inputStream = get(getAllDocsUri(getDBUri(), false)));
+            JsonObject allDocsGetResult = getGson().fromJson(reader, JsonObject.class);
+            JsonArray docRows = allDocsGetResult.getAsJsonArray("rows");
+
+            List<String> allDocIdsList = new ArrayList<String>();
+
+            for (JsonElement jsonElement : docRows) {
+                allDocIdsList.add(jsonElement.getAsJsonObject().get("id").getAsString());
+            }
+
+            return allDocIdsList;
+        } finally {
+            close(inputStream);
+        }
+    }
 }

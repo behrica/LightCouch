@@ -16,40 +16,24 @@
 
 package org.lightcouch.tests;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import org.apache.commons.codec.binary.Base64;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.lightcouch.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
-import org.apache.commons.codec.binary.Base64;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.lightcouch.Attachment;
-import org.lightcouch.Changes;
-import org.lightcouch.ChangesResult;
-import org.lightcouch.CouchDbClient;
-import org.lightcouch.CouchDbInfo;
-import org.lightcouch.DesignDocument;
-import org.lightcouch.DocumentConflictException;
-import org.lightcouch.NoDocumentException;
-import org.lightcouch.Page;
-import org.lightcouch.ReplicationResult;
-import org.lightcouch.ReplicatorDocument;
-import org.lightcouch.Response;
-import org.lightcouch.View;
-import org.lightcouch.ViewResult;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import static java.util.Arrays.asList;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.*;
 
 /**
  * Database integration tests.
@@ -122,6 +106,24 @@ public class CouchDbClientTest {
 		assertTrue(inputStream.read() != -1);
 		inputStream.close();
 	}
+
+
+    @Test
+    public void testAllDocs() {
+        dbClient.context().deleteDB("lightcouch-db-test","delete database");
+        dbClient=new CouchDbClient(); // to re-create empty database
+
+        Foo foo1 = new Foo("1");
+        dbClient.save(foo1);
+        Foo foo2 = new Foo("2");
+        dbClient.save(foo2);
+        Foo foo3 = new Foo("3");
+        dbClient.save(foo3);
+
+
+        List<String> allIds=dbClient.allDocIds();
+        assertEquals(asList("1","2","3"),allIds);
+    }
 	
 	@Test
 	public void testContains() {
@@ -611,8 +613,8 @@ public class CouchDbClientTest {
 			changes.stop();
 		}
 	}
-	
-	// util
+
+    // util
 	
 	private static String generateUUID() {
 		return UUID.randomUUID().toString().replace("-", "");
